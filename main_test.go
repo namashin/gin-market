@@ -44,20 +44,23 @@ func setUp() *gin.Engine {
 }
 
 // _signUp method for Test User
+//
+// request: POST, "/auth/signup", dto.SignUpInput
+// response: {"user": dto.SignUpInput}
 func _signUp(t *testing.T, router *gin.Engine, signUpTestUser dto.SignUpInput) dto.SignUpInput {
 	// sign up request body
 	reqBody, err := json.Marshal(signUpTestUser)
 	assert.Equal(t, err, nil)
 
 	// http request
-	signUpReq, err := http.NewRequest(http.MethodPost, "/auth/signup", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(http.MethodPost, "/auth/signup", bytes.NewBuffer(reqBody))
 	assert.Equal(t, err, nil)
 
 	// http response
 	w := httptest.NewRecorder()
 
 	// do API http request
-	router.ServeHTTP(w, signUpReq)
+	router.ServeHTTP(w, req)
 
 	// ? signup succeeded
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -71,6 +74,9 @@ func _signUp(t *testing.T, router *gin.Engine, signUpTestUser dto.SignUpInput) d
 }
 
 // _login method for Test User to login
+//
+// request: POST, "/auth/login", dto.LoginInput
+// response: {"token": "xxx"}
 func _login(t *testing.T, router *gin.Engine, loginUser dto.LoginInput) string {
 	// request body
 	reqBody, err := json.Marshal(loginUser)
@@ -98,6 +104,9 @@ func _login(t *testing.T, router *gin.Engine, loginUser dto.LoginInput) string {
 }
 
 // _createTestItems make count numbers item
+//
+// request: POST, "/items", dto.CreateItemInput
+// response: {"data": models.Item}
 func _createTestItems(t *testing.T, router *gin.Engine, token string, count int) []uint {
 	var createdItemIDs []uint
 
@@ -139,6 +148,10 @@ func _createTestItems(t *testing.T, router *gin.Engine, token string, count int)
 	return createdItemIDs
 }
 
+// _findMyAll
+//
+// request: GET, "/items/mine", dto.CreateItemInput
+// response: {"data": []models.Item}
 func _findMyAll(t *testing.T, router *gin.Engine, token string) []models.Item {
 	// http request
 	req, err := http.NewRequest(http.MethodGet, "/items/mine", nil)
@@ -155,12 +168,16 @@ func _findMyAll(t *testing.T, router *gin.Engine, token string) []models.Item {
 
 	// put http response result in resBody
 	var resBody map[string][]models.Item
-	err = json.Unmarshal([]byte(w.Body.String()), &resBody)
+	err = json.Unmarshal(w.Body.Bytes(), &resBody)
 	assert.Equal(t, err, nil)
 
 	return resBody["data"]
 }
 
+// _update
+//
+// request: PUT, "/items/:id", dto.UpdateItemInput
+// response: {"data": models.Item}
 func _update(t *testing.T, router *gin.Engine, token string, updateId string, updateItem dto.UpdateItemInput) models.Item {
 	// update request body
 	reqBody, err := json.Marshal(updateItem)
@@ -190,6 +207,10 @@ func _update(t *testing.T, router *gin.Engine, token string, updateId string, up
 	return resBody["data"]
 }
 
+// _delete
+//
+// request: DELETE, "/items/:id", nil
+// response:
 func _delete(t *testing.T, router *gin.Engine, token string, deleteId string) {
 	// http request
 	req, err := http.NewRequest(http.MethodDelete, "/items/"+deleteId, nil)
@@ -208,16 +229,78 @@ func _delete(t *testing.T, router *gin.Engine, token string, deleteId string) {
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
+// _findAll
+//
+// request: GET, "/items", nil
+// response: {"data": []models.Item}
+func _findAll(t *testing.T, router *gin.Engine) []models.Item {
+	// http request
+	req, err := http.NewRequest(http.MethodGet, "/items", nil)
+	assert.Equal(t, err, nil)
+
+	// http response
+	w := httptest.NewRecorder()
+
+	// do API FindMyAll request
+	router.ServeHTTP(w, req)
+
+	// assert status check
+	assert.Equal(t, w.Code, http.StatusOK)
+
+	// put http response result in resBody
+	var resBody map[string][]models.Item
+	err = json.Unmarshal(w.Body.Bytes(), &resBody)
+	assert.Equal(t, err, nil)
+
+	return resBody["data"]
+}
+
+func TestFindAll(t *testing.T) {
+	// set up DB
+	db := infra.SetUpDB()
+	err := db.AutoMigrate(&models.Item{}, &models.User{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	/* 1. add previous item data */
+	items := []models.Item{
+		{Name: "test1", Price: 100, Description: "test1", SoldOut: false},
+		{Name: "test2", Price: 200, Description: "test2", SoldOut: true},
+		{Name: "test3", Price: 300, Description: "test3", SoldOut: false},
+	}
+	users := []models.User{
+		{Email: "test1@example.com", Password: "test1 password"},
+		{Email: "test2@example.com", Password: "test2 password"},
+		{Email: "test3@example.com", Password: "test3 password"},
+	}
+	for _, item := range items {
+		db.Create(&item)
+	}
+	for _, user := range users {
+		db.Create(&user)
+	}
+
+	/* 2. set up router */
+	router := setUpRouter(db)
+
+	/* 3. Test FindAll */
+	allItems := _findAll(t, router)
+
+	/* 4. assert check */
+	assert.Equal(t, 3, len(allItems))
+}
+
 func TestFindMyAll(t *testing.T) {
 	testRouter := setUp()
 
-	/* 1. Sign up by new user */
+	/* 1. Sign up by TestUser */
 	signUpUser := _signUp(t, testRouter, TestUser)
 
 	/* 2. Login */
 	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
 
-	/* 3. Create 10 items by login user */
+	/* 3. Create 10 items */
 	newItemIDs := _createTestItems(t, testRouter, token, 10)
 
 	/* 4. Test FindMyAll method */
@@ -230,7 +313,7 @@ func TestFindMyAll(t *testing.T) {
 func TestCreate(t *testing.T) {
 	testRouter := setUp()
 
-	/* 1. Sign up by new user */
+	/* 1. Sign up by TestUser */
 	signUpUser := _signUp(t, testRouter, TestUser)
 
 	/* 2. Login */
@@ -252,7 +335,7 @@ func TestCreate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	testRouter := setUp()
 
-	/* 1. Sign up by new user */
+	/* 1. Sign up by TestUser */
 	signUpUser := _signUp(t, testRouter, TestUser)
 
 	/* 2. Login */
@@ -262,7 +345,7 @@ func TestDelete(t *testing.T) {
 	newItemIDs := _createTestItems(t, testRouter, token, 10)
 
 	/* 4. Delete one item */
-	// delete first index in new items
+	// delete first index
 	deleteId := strconv.Itoa(int(newItemIDs[0]))
 	_delete(t, testRouter, token, deleteId)
 

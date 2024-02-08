@@ -31,6 +31,9 @@ func (ir *ItemDBRepository) FindAll() (*[]models.Item, error) {
 
 	result := ir.db.Find(&items)
 	if result.Error != nil {
+		if result.Error.Error() == "record not found" {
+			return nil, errors.New("item not found")
+		}
 		return nil, result.Error
 	}
 
@@ -45,9 +48,8 @@ func (ir *ItemDBRepository) FindMyAll(userId uint) (*[]models.Item, error) {
 	if result.Error != nil {
 		if result.Error.Error() == "record not found" {
 			return nil, errors.New("item not found")
-		} else {
-			return nil, result.Error
 		}
+		return nil, result.Error
 	}
 
 	return &items, nil
@@ -62,9 +64,8 @@ func (ir *ItemDBRepository) FindById(targetId uint, userId uint) (*models.Item, 
 
 		if result.Error.Error() == "record not found" {
 			return nil, errors.New("item not found")
-		} else {
-			return nil, result.Error
 		}
+		return nil, result.Error
 	}
 
 	log.Printf("successfully called FindById = %v", item)
@@ -87,7 +88,6 @@ func (ir *ItemDBRepository) Update(updateItem models.Item) (*models.Item, error)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
 	return &updateItem, nil
 }
 
@@ -97,9 +97,8 @@ func (ir *ItemDBRepository) Delete(targetId uint, userId uint) error {
 		return err
 	}
 
-	// if delete completely
+	// [if delete completely]
 	//result := ir.db.Unscoped().Delete(&targetItem)
-
 	result := ir.db.Delete(&targetItem)
 	if result.Error != nil {
 		log.Printf("failed to delete = %v", targetItem)
