@@ -43,7 +43,7 @@ func (imr *ItemMemoryRepository) Update(updateItem models.Item) (*models.Item, e
 		}
 	}
 
-	return nil, errors.New("target item not found")
+	return nil, errors.New("item not found")
 }
 
 func (imr *ItemMemoryRepository) Delete(targetId uint, userId uint) error {

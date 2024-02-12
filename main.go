@@ -18,18 +18,12 @@ func main() {
 	db := infra.SetUpDB()
 
 	// 各パッケージのロギング設定を呼び出す
-	LoggingSettings("./logs/main_log/main.log")
-	controllers.LoggingSettings("logs/controllers_log/controllers.log")
-	services.LoggingSettings("logs/services_log/services.log")
-	repository.LoggingSettings("logs/repository_log/repository.log")
+	LoggingSettings("./logs/gin_market.log")
 
 	r := setUpRouter(db)
 
 	// サーバーを起動
-	err := r.Run(":8080")
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(r.Run(":8080"))
 }
 
 func LoggingSettings(logFile string) {
@@ -45,10 +39,9 @@ func LoggingSettings(logFile string) {
 }
 
 func setUpRouter(db *gorm.DB) *gin.Engine {
-	// [in memory]
+	// save in memory for test
 	// itemMemoryRepository := repository.NewItemMemoryRepository(items)
 
-	// [in DB]
 	itemDBRepository := repository.NewItemDBRepository(db)
 	itemService := services.NewItemService(itemDBRepository)
 	itemController := controllers.NewItemController(itemService)
