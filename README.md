@@ -67,7 +67,7 @@ With Gin Market, you can easily manage your inventory and handle user authentica
 
 ### Configuration
 
-You can configure the application's database settings in the `config.yaml` file.
+You can configure the application's database settings in the `docker-compose.yaml` file.
 
 ## Contributing
 
