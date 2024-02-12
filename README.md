@@ -13,7 +13,7 @@ With Gin Market, you can easily manage your inventory and handle user authentica
 
 ### Prerequisites
 
-- Go 1.15 or later installed on your system.
+- Go 1.20 or later installed on your system.
 - A compatible database system (such as SQLite) set up and ready to go.
 
 ### Getting Started
@@ -31,13 +31,21 @@ With Gin Market, you can easily manage your inventory and handle user authentica
     go mod tidy
     ```
 
-3. Start the server:
+3. Use Docker Compose to start the application:
+
+    ```bash
+    docker-compose up -d
+    ```
+
+    This command will start the application in the background.
+
+4. Start the server:
 
     ```bash
     go run main.go
     ```
 
-    Your server should now be up and running at [http://localhost:8080](http://localhost:8080).
+    Your Gin WEB server should now be up and running at [http://localhost:8080](http://localhost:8080).
 
 ## Usage
 
