@@ -52,7 +52,7 @@ func (ic *ItemController) FindMyAll(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusFound, gin.H{"data": items})
+	ctx.JSON(http.StatusOK, gin.H{"data": items})
 }
 
 func (ic *ItemController) FindById(ctx *gin.Context) {

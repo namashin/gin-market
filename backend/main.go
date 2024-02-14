@@ -6,11 +6,13 @@ import (
 	"gin-market/middleware"
 	"gin-market/repository"
 	"gin-market/services"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -18,7 +20,7 @@ func main() {
 	db := infra.SetUpDB()
 
 	// 各パッケージのロギング設定を呼び出す
-	LoggingSettings("./logs/gin_market.log")
+	LoggingSettings("./backend/logs/gin_market.log")
 
 	r := setUpRouter(db)
 
@@ -52,6 +54,26 @@ func setUpRouter(db *gorm.DB) *gin.Engine {
 
 	// Ginのルーターを初期化
 	r := gin.Default()
+
+	//config := cors.DefaultConfig()
+	//config.AllowHeaders = []string{"Authorization"} // 許可されたヘッダーを指定
+	//r.Use(cors.New(config))
+
+	//// CORSミドルウェアを使用して、すべてのオリジンからのリクエストを許可
+	// r.Use(cors.Default())
+	// CORSミドルウェアを使用して、すべてのオリジンからのリクエストを許可
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			// ここでオリジンのチェックを行うこともできます
+			return true
+		},
+		MaxAge: 12 * time.Hour,
+	}))
 
 	itemRouter := r.Group("/items")
 	itemRouterWithAuth := r.Group("/items", middleware.AuthMiddleware(authService))

@@ -6,7 +6,7 @@ import (
 )
 
 func Initialize() {
-	err := godotenv.Load()
+	err := godotenv.Load("./backend/.env")
 	if err != nil {
 		log.Fatal(err)
 	}
