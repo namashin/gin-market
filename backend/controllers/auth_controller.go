@@ -4,12 +4,22 @@ import (
 	"gin-market/dto"
 	"gin-market/services"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"net/http"
+	"strings"
+)
+
+var (
+	// Redisの接続情報
+	RedisClient *redis.Client
+	// セッションストア
+	// store = sessions.NewCookieStore([]byte("secret-key"))
 )
 
 type IAuthController interface {
 	SignUp(ctx *gin.Context)
 	Login(ctx *gin.Context)
+	Logout(ctx *gin.Context)
 }
 
 type AuthController struct {
@@ -60,4 +70,17 @@ func (ac *AuthController) Login(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (ac *AuthController) Logout(ctx *gin.Context) {
+	authHeader := ctx.GetHeader("Authorization")
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	err := ac.service.Logout(token)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }

@@ -9,10 +9,14 @@ import (
 // アプリケーションの起動と、DBマイグレーションを分ける
 
 func main() {
-	infra.Initialize()
+	err := infra.Initialize()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db := infra.SetUpDB()
 
-	err := db.AutoMigrate(&models.Item{}, &models.User{})
+	err = db.AutoMigrate(&models.Item{}, &models.User{})
 	if err != nil {
 		log.Fatal(err)
 	}

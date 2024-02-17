@@ -13,7 +13,10 @@ import (
 type IAuthService interface {
 	SignUp(email string, password string) error
 	Login(email string, password string) (*string, error)
+	Logout(token string) error
 	GetUserFromToken(tokenString string) (*models.User, error)
+	InvalidateToken(tokenString string) error
+	IsValidToken(tokenString string) bool
 }
 
 type AuthService struct {
@@ -47,6 +50,7 @@ func (as *AuthService) Login(email string, password string) (*string, error) {
 		return nil, err
 	}
 
+	// ? check password
 	err = bcrypt.CompareHashAndPassword([]byte(targetUser.Password), []byte(password))
 	if err != nil {
 		return nil, err
@@ -58,6 +62,10 @@ func (as *AuthService) Login(email string, password string) (*string, error) {
 	}
 
 	return token, nil
+}
+
+func (as *AuthService) Logout(token string) error {
+	return as.repository.InvalidateToken(token)
 }
 
 func CreateToken(userId uint, email string) (*string, error) {
@@ -100,4 +108,12 @@ func (as *AuthService) GetUserFromToken(tokenString string) (*models.User, error
 	}
 
 	return user, nil
+}
+
+func (as *AuthService) InvalidateToken(tokenString string) error {
+	return as.repository.InvalidateToken(tokenString)
+}
+
+func (as *AuthService) IsValidToken(tokenString string) bool {
+	return as.repository.IsValidToken(tokenString)
 }

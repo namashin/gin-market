@@ -37,7 +37,6 @@ func (ir *ItemDBRepository) FindAll() (*[]models.Item, error) {
 		return nil, result.Error
 	}
 
-	log.Println(items)
 	return &items, nil
 }
 
@@ -79,7 +78,6 @@ func (ir *ItemDBRepository) Create(newItem models.Item) (*models.Item, error) {
 		return nil, result.Error
 	}
 
-	log.Printf("successfully called Create = %v", newItem)
 	return &newItem, nil
 }
 

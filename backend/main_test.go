@@ -43,6 +43,147 @@ func setUp() *gin.Engine {
 	return router
 }
 
+func TestFindAll(t *testing.T) {
+	// set up DB
+	db := infra.SetUpDB()
+	err := db.AutoMigrate(&models.Item{}, &models.User{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	/* 1. add previous item data */
+	items := []models.Item{
+		{Name: "test1", Price: 100, Description: "test1", SoldOut: false},
+		{Name: "test2", Price: 200, Description: "test2", SoldOut: true},
+		{Name: "test3", Price: 300, Description: "test3", SoldOut: false},
+	}
+	users := []models.User{
+		{Email: "test1@example.com", Password: "test1 password"},
+		{Email: "test2@example.com", Password: "test2 password"},
+		{Email: "test3@example.com", Password: "test3 password"},
+	}
+	for _, item := range items {
+		db.Create(&item)
+	}
+	for _, user := range users {
+		db.Create(&user)
+	}
+
+	/* 2. set up router */
+	router := setUpRouter(db)
+
+	/* 3. Test FindAll */
+	allItems := _findAll(t, router)
+
+	/* 4. assert check */
+	assert.Equal(t, 3, len(allItems))
+}
+
+func TestFindMyAll(t *testing.T) {
+	testRouter := setUp()
+
+	/* 1. Sign up by TestUser */
+	signUpUser := _signUp(t, testRouter, TestUser)
+
+	/* 2. Login */
+	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
+
+	/* 3. Create 10 items */
+	newItemIDs := _createTestItems(t, testRouter, token, 10)
+
+	/* 4. Test FindMyAll method */
+	myItems := _findMyAll(t, testRouter, token)
+
+	/* 5. assert check */
+	assert.Equal(t, len(newItemIDs), len(myItems))
+}
+
+func TestCreate(t *testing.T) {
+	testRouter := setUp()
+
+	/* 1. Sign up by TestUser */
+	signUpUser := _signUp(t, testRouter, TestUser)
+
+	/* 2. Login */
+	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
+
+	/* 3. asset check (not yet created) */
+	// get all items
+	currentItems := _findMyAll(t, testRouter, token)
+	// ? is empty at first
+	assert.Equal(t, 0, len(currentItems))
+
+	/* 4. create 10 items */
+	newItemIDs := _createTestItems(t, testRouter, token, 10)
+
+	/* 5. assert check (created 10 items) */
+	assert.Equal(t, len(newItemIDs), 10)
+}
+
+func TestDelete(t *testing.T) {
+	testRouter := setUp()
+
+	/* 1. Sign up by TestUser */
+	signUpUser := _signUp(t, testRouter, TestUser)
+
+	/* 2. Login */
+	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
+
+	/* 3. Create 10 items by login user */
+	newItemIDs := _createTestItems(t, testRouter, token, 10)
+
+	/* 4. Delete one item */
+	// delete first index
+	deleteId := strconv.Itoa(int(newItemIDs[0]))
+	_delete(t, testRouter, token, deleteId)
+
+	/* 5. get items */
+	myItems := _findMyAll(t, testRouter, token)
+
+	/* 6. assert check */
+	assert.Equal(t, 9, len(myItems))
+}
+
+func TestUpdate(t *testing.T) {
+	testRouter := setUp()
+
+	/* 1. Signup by test user */
+	newUser := _signUp(t, testRouter, TestUser)
+
+	/* 2. Login */
+	token := _login(t, testRouter, dto.LoginInput{Email: newUser.Email, Password: newUser.Password})
+
+	/* 3. Create 10 items */
+	itemIDs := _createTestItems(t, testRouter, token, 10)
+
+	/* 4. Update one of the created items */
+	updateName := "updated name"
+	updatePrice := uint(9999)
+	updateDescription := "updated"
+
+	updateItem := dto.UpdateItemInput{
+		Name:        &updateName,
+		Price:       &updatePrice,
+		Description: &updateDescription,
+	}
+	// update first index item
+	updateId := strconv.Itoa(int(itemIDs[0]))
+	updatedItem := _update(t, testRouter, token, updateId, updateItem)
+
+	/* 5. assert check */
+	assert.Equal(t, updatedItem.Name, updateName)
+	assert.Equal(t, updatedItem.Price, updatePrice)
+	assert.Equal(t, updatedItem.Description, updateDescription)
+}
+
+func TestLogin(t *testing.T) {
+	// TODO
+}
+
+func TesLogout(t *testing.T) {
+	// TODO
+}
+
 // _signUp method for Test User
 //
 // request: POST, "/auth/signup", dto.SignUpInput
@@ -253,137 +394,4 @@ func _findAll(t *testing.T, router *gin.Engine) []models.Item {
 	assert.Equal(t, err, nil)
 
 	return resBody["data"]
-}
-
-func TestFindAll(t *testing.T) {
-	// set up DB
-	db := infra.SetUpDB()
-	err := db.AutoMigrate(&models.Item{}, &models.User{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	/* 1. add previous item data */
-	items := []models.Item{
-		{Name: "test1", Price: 100, Description: "test1", SoldOut: false},
-		{Name: "test2", Price: 200, Description: "test2", SoldOut: true},
-		{Name: "test3", Price: 300, Description: "test3", SoldOut: false},
-	}
-	users := []models.User{
-		{Email: "test1@example.com", Password: "test1 password"},
-		{Email: "test2@example.com", Password: "test2 password"},
-		{Email: "test3@example.com", Password: "test3 password"},
-	}
-	for _, item := range items {
-		db.Create(&item)
-	}
-	for _, user := range users {
-		db.Create(&user)
-	}
-
-	/* 2. set up router */
-	router := setUpRouter(db)
-
-	/* 3. Test FindAll */
-	allItems := _findAll(t, router)
-
-	/* 4. assert check */
-	assert.Equal(t, 3, len(allItems))
-}
-
-func TestFindMyAll(t *testing.T) {
-	testRouter := setUp()
-
-	/* 1. Sign up by TestUser */
-	signUpUser := _signUp(t, testRouter, TestUser)
-
-	/* 2. Login */
-	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
-
-	/* 3. Create 10 items */
-	newItemIDs := _createTestItems(t, testRouter, token, 10)
-
-	/* 4. Test FindMyAll method */
-	myItems := _findMyAll(t, testRouter, token)
-
-	/* 5. assert check */
-	assert.Equal(t, len(newItemIDs), len(myItems))
-}
-
-func TestCreate(t *testing.T) {
-	testRouter := setUp()
-
-	/* 1. Sign up by TestUser */
-	signUpUser := _signUp(t, testRouter, TestUser)
-
-	/* 2. Login */
-	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
-
-	/* 3. asset check (not yet created) */
-	// get all items
-	currentItems := _findMyAll(t, testRouter, token)
-	// ? is empty at first
-	assert.Equal(t, 0, len(currentItems))
-
-	/* 4. create 10 items */
-	newItemIDs := _createTestItems(t, testRouter, token, 10)
-
-	/* 5. assert check (created 10 items) */
-	assert.Equal(t, len(newItemIDs), 10)
-}
-
-func TestDelete(t *testing.T) {
-	testRouter := setUp()
-
-	/* 1. Sign up by TestUser */
-	signUpUser := _signUp(t, testRouter, TestUser)
-
-	/* 2. Login */
-	token := _login(t, testRouter, dto.LoginInput{Email: signUpUser.Email, Password: signUpUser.Password})
-
-	/* 3. Create 10 items by login user */
-	newItemIDs := _createTestItems(t, testRouter, token, 10)
-
-	/* 4. Delete one item */
-	// delete first index
-	deleteId := strconv.Itoa(int(newItemIDs[0]))
-	_delete(t, testRouter, token, deleteId)
-
-	/* 5. get items */
-	myItems := _findMyAll(t, testRouter, token)
-
-	/* 6. assert check */
-	assert.Equal(t, 9, len(myItems))
-}
-
-func TestUpdate(t *testing.T) {
-	testRouter := setUp()
-
-	/* 1. Signup by test user */
-	newUser := _signUp(t, testRouter, TestUser)
-
-	/* 2. Login */
-	token := _login(t, testRouter, dto.LoginInput{Email: newUser.Email, Password: newUser.Password})
-
-	/* 3. Create 10 items */
-	itemIDs := _createTestItems(t, testRouter, token, 10)
-
-	/* 4. Update one of the created items */
-	updateName := "updated name"
-	updatePrice := uint(9999)
-	updateDescription := "updated"
-
-	updateItem := dto.UpdateItemInput{
-		Name:        &updateName,
-		Price:       &updatePrice,
-		Description: &updateDescription,
-	}
-	// update first index item
-	updateId := strconv.Itoa(int(itemIDs[0]))
-	updatedItem := _update(t, testRouter, token, updateId, updateItem)
-
-	/* 5. assert check */
-	assert.Equal(t, updatedItem.Name, updateName)
-	assert.Equal(t, updatedItem.Price, updatePrice)
-	assert.Equal(t, updatedItem.Description, updateDescription)
 }

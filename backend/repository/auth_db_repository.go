@@ -9,7 +9,11 @@ import (
 type IAuthRepository interface {
 	CreateUser(user models.User) error
 	FindUser(email string) (*models.User, error)
+	InvalidateToken(token string) error
+	IsValidToken(token string) bool
 }
+
+var invalidTokens map[string]bool = make(map[string]bool)
 
 type AuthRepository struct {
 	db *gorm.DB
@@ -41,4 +45,17 @@ func (ar *AuthRepository) FindUser(email string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (ar *AuthRepository) InvalidateToken(token string) error {
+	if ok := invalidTokens[token]; ok {
+		return errors.New("already invalidate token")
+	}
+
+	invalidTokens[token] = true
+	return nil
+}
+
+func (ar *AuthRepository) IsValidToken(token string) bool {
+	return !invalidTokens[token]
 }

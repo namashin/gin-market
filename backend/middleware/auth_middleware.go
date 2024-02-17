@@ -20,6 +20,13 @@ func AuthMiddleware(authService services.IAuthService) gin.HandlerFunc {
 		}
 
 		tokenString := strings.TrimPrefix(header, "Bearer ")
+
+		// ? still valid token
+		if !authService.IsValidToken(tokenString) {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
 		user, err := authService.GetUserFromToken(tokenString)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
